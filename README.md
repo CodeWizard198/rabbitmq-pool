@@ -1,4 +1,3 @@
-```markdown
 # RabbitMQ Connection Pool for Go
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/rabbitmq-pool)](https://goreportcard.com/report/github.com/yourusername/rabbitmq-pool)
@@ -164,4 +163,3 @@ https://github.com/yourusername/rabbitmq-pool
 
 ## License
 MIT License. See [LICENSE](LICENSE) for details.
-```
