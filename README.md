@@ -157,7 +157,7 @@ func startConsumer() {
 3. Update documentation  
 
 Submit issues/PRs to:  
-https://github.com/yourusername/rabbitmq-pool
+https://github.com/CodeWizard198/rabbitmq-pool
 
 ---
 
