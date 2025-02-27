@@ -18,7 +18,7 @@
 
 ## Installation
 ```bash
-go get github.com/yourusername/rabbitmq-pool
+go get github.com/CodeWizard198/rabbitmq-pool
 ```
 
 ---
@@ -32,7 +32,7 @@ package main
 import (
     "context"
     "time"
-    "github.com/yourusername/rabbitmq-pool"
+    "github.com/CodeWizard198/rabbitmq-pool"
 )
 
 func main() {

@@ -1,4 +1,4 @@
-package mqpool
+package rabbitmq
 
 import (
 	"context"
