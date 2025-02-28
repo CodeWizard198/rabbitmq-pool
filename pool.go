@@ -20,32 +20,35 @@ const (
 )
 
 type PoolConfig struct {
-	URL            string
-	MaxConnections int
-	MaxChannels    int
-	PrefetchCount  int
-	PrefetchSize   int
-	ConfirmMode    bool
-	ReconnectDelay time.Duration
+	URL            string        // rabbitmq连接地址
+	MaxConnections int           // 最大连接数
+	MaxChannels    int           // 最大通道量
+	PrefetchCount  int           // 消费者专属 Qos配置 消费者预取数量 0: 不限制
+	PrefetchSize   int           // 消费者专属 Qos配置 消费者预取体积 KB
+	ConfirmMode    bool          // 生产者确认模式
+	ReconnectDelay time.Duration // 基础重连时间间隔
 }
 
 type ConnectionPool struct {
-	config        *PoolConfig
-	poolType      PoolType
-	connections   []*ConnectionWrapper
+	config        *PoolConfig          // 连接池配置
+	poolType      PoolType             // 连接池类型 生产者/消费者
+	connections   []*ConnectionWrapper // 连接列表
 	mu            sync.Mutex
 	closeNotifier chan struct{}
 }
 
 type ConnectionWrapper struct {
-	conn           *amqp.Connection
-	channels       chan *amqp.Channel
-	mu             sync.Mutex
-	poolType       PoolType
-	activeChannels int
-	closed         bool
+	conn           *amqp.Connection   // 具体rabbbitmq连接
+	channels       chan *amqp.Channel // 可复用的channels
+	mu             sync.Mutex         // 互斥锁
+	poolType       PoolType           // 连接类型 在创建ConnectionWrapper时由ConnectionPool导入
+	activeChannels int                // 活跃的channel数
+	closed         bool               // 关闭标识
 }
 
+// NewConnectionPool 创建一个新的连接池
+// poolType 连接池类型
+// config连接池配置
 func NewConnectionPool(poolType PoolType, config *PoolConfig) *ConnectionPool {
 	if config.ReconnectDelay < time.Second { // 设置最小重连间隔
 		config.ReconnectDelay = time.Second
@@ -133,7 +136,7 @@ func (p *ConnectionPool) tryGetChannel() (*amqp.Channel, func(), error) {
 	return nil, nil, errors.New("max connections reached")
 }
 
-// 新增指数退避计算（使用ReconnectDelay作为基础时间）
+// 指数退避计算（使用ReconnectDelay作为基础时间）
 func (p *ConnectionPool) calculateBackoff(retry int) time.Duration {
 	base := float64(p.config.ReconnectDelay)
 	maxDelay := 30 * time.Second
@@ -145,6 +148,7 @@ func (p *ConnectionPool) calculateBackoff(retry int) time.Duration {
 	return delay
 }
 
+// 每30s清理一次已关闭的连接
 func (p *ConnectionPool) connectionMonitor() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
@@ -174,7 +178,7 @@ func (p *ConnectionPool) cleanupConnections() {
 	p.connections = activeConns
 }
 
-// Close close the connection pool
+// 关闭连接池
 func (p *ConnectionPool) Close() {
 	close(p.closeNotifier)
 	p.mu.Lock()
@@ -186,8 +190,7 @@ func (p *ConnectionPool) Close() {
 	p.connections = nil
 }
 
-// get channel
-// first to get old channel
+// 获取channel
 func (cw *ConnectionWrapper) getChannel(config *PoolConfig) (*amqp.Channel, func(), error) {
 	select {
 	case ch := <-cw.channels: // try to get old channel
@@ -206,13 +209,12 @@ func (cw *ConnectionWrapper) getChannel(config *PoolConfig) (*amqp.Channel, func
 			return nil, nil, fmt.Errorf("channel creation failed: %w", err)
 		}
 
-		// init channel setting
 		if err := setupChannel(ch, config, cw.poolType); err != nil {
 			ch.Close()
 			return nil, nil, err
 		}
 
-		// watch notify
+		// 监控channel的退出
 		closeChan := make(chan *amqp.Error)
 		ch.NotifyClose(closeChan)
 		go func() {
@@ -245,11 +247,11 @@ func setupChannel(ch *amqp.Channel, config *PoolConfig, poolType PoolType) error
 	return nil
 }
 
-// release channel
+// 释放channel
 func (cw *ConnectionWrapper) releaseChannel(ch *amqp.Channel, config *PoolConfig) {
-	// reset channel status
+	// 重置channel的状态 如果消费者配置了PrefetchCount
 	if config.PrefetchCount > 0 {
-		ch.Qos(0, 0, false) // reset Qos
+		ch.Qos(0, 0, false) //  Qos
 	}
 
 	select {
@@ -262,21 +264,18 @@ func (cw *ConnectionWrapper) releaseChannel(ch *amqp.Channel, config *PoolConfig
 	}
 }
 
-// isClosed check connection status
 func (cw *ConnectionWrapper) isClosed() bool {
 	cw.mu.Lock()
 	defer cw.mu.Unlock()
 	return cw.closed
 }
 
-// markAsClosed mark connection by close
 func (cw *ConnectionWrapper) markAsClosed() {
 	cw.mu.Lock()
 	defer cw.mu.Unlock()
 	cw.closed = true
 }
 
-// close close the connection and all channel
 func (cw *ConnectionWrapper) close() {
 	cw.mu.Lock()
 	defer cw.mu.Unlock()

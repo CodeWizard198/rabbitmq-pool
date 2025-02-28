@@ -3,29 +3,33 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/yourusername/rabbitmq-pool)](https://goreportcard.com/report/github.com/yourusername/rabbitmq-pool)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Features
-- 🚀 **Dual Mode**: Separate configurations for producers/consumers  
-- 🔄 **Smart Reconnect**: Exponential backoff + Heartbeat detection  
-- ⚙️ **Fine-grained Control**:
-  - Connection/channel limits  
-  - QoS prefetching (consumers)  
-  - Publisher confirms (producers)  
-- 📊 **Connection Monitoring**: Auto-cleanup dead connections  
-- ⏱️ **Context-aware API**: Built-in timeout control  
-- 📦 **Channel Pooling**: Reduce resource creation overhead  
+高效的RabbitMQ连接池实现，支持生产者和消费者专用配置，提供完善的连接管理和故障恢复机制。
 
 ---
 
-## Installation
+## 功能特性
+- 🚀 **双模式支持**：独立的生产者/消费者连接池配置
+- 🔄 **智能重连**：指数退避重试算法 + 心跳检测
+- ⚙️ **精细化控制**：
+  - 连接数/通道数限制
+  - QoS预取策略（消费者）
+  - 发布确认模式（生产者）
+- 📊 **连接监控**：自动清理无效连接
+- ⏱️ **超时控制**：上下文感知的API设计
+- 📦 **通道复用**：减少资源创建开销
+
+---
+
+## 安装依赖
 ```bash
 go get github.com/CodeWizard198/rabbitmq-pool
 ```
 
 ---
 
-## Quick Start
+## 快速开始
 
-### Producer Example
+### 生产者模式
 ```go
 package main
 
@@ -108,55 +112,57 @@ func startConsumer() {
 
 ---
 
-## Configuration
+## 配置选项
 
-| Parameter | Type | Default | Description |
+| 参数 | 类型 | 默认值 | 描述 |
 |-----------|------|---------|-------------|
-| `URL` | string | Required | RabbitMQ server URL |
-| `MaxConnections` | int | 3 | Max physical connections |
-| `MaxChannels` | int | 50 | Max channels per connection |
-| `PrefetchCount` | int | 0 | Consumer prefetch count (0=unlimited) |
-| `PrefetchSize` | int | 0 | Consumer prefetch size (bytes) |
-| `ConfirmMode` | bool | false | Enable publisher confirms |
-| `ReconnectDelay` | time.Duration | 1s | Base reconnection delay |
+| `URL` | string | Required | RabbitMQ连接地址 |
+| `MaxConnections` | int | 3 | 最大物理连接数 |
+| `MaxChannels` | int | 50 | 单个连接最大通道数 |
+| `PrefetchCount` | int | 0 | 消费者预取数量 (0=无限制) |
+| `PrefetchSize` | int | 0 | 消费者预取体积 (字节) |
+| `ConfirmMode` | bool | false | 生产者确认模式 |
+| `ReconnectDelay` | time.Duration | 1s | 基础重连间隔 |
 
 ---
 
-## Best Practices
-1. **Separate Pools**: Use dedicated pools for producers/consumers  
-2. **Tuning**:
-   - Producers: 3-5 connections, enable ConfirmMode  
-   - Consumers: Set PrefetchCount based on workload (10-200)  
-3. **Error Handling**:
+## 最佳实践
+1. **连接池分离**: 生产/消费使用独立连接池 
+2. **参数调优**:
+   - 生产者：适当减少连接数（3-5），启用ConfirmMode 
+   - 消费者：根据负载调整PrefetchCount（建议10-200  
+3. **错误处理**:
    ```go
    if errors.Is(err, amqp.ErrClosed) {
        // Handle channel-level errors
    }
    ```
-4. **Monitoring**:
-   - Active connections  
-   - Channel utilization rate  
-   - Unacked messages count  
+4. **监控指标**:
+   - 活跃连接数  
+   - 通道利用率 
+   - 未确认消息数 
 
 ---
 
-## Performance
-**Test Environment**: 4-core CPU/8GB RAM, RabbitMQ 3.11
+## 性能基准
+**测试环境**: 4核CPU/8GB内存，RabbitMQ 3.11
 
-| Scenario | Throughput | Latency |
+| 场景 | 吞吐量 | 平均延迟 |
 |----------|------------|---------|
-| Producer (no confirm) | 18k msg/s | 0.8ms |
-| Producer (confirm) | 12.5k msg/s | 1.2ms |
-| Consumer (prefetch=100) | 9.5k msg/s | 2.1ms |
+| 生产者（确认模式关闭） | 18k msg/s | 0.8ms |
+| 生产者（确认模式开启） | 12.5k msg/s | 1.2ms |
+| 消费者（Prefetch=100） | 9.5k msg/s | 2.1ms |
 
 ---
 
-## Contribution
-1. Follow Go coding standards  
-2. Add unit tests (coverage >85%)  
-3. Update documentation  
+## 贡献指南
 
-Submit issues/PRs to:  
+欢迎通过Issue和PR参与贡献！开发前请阅读：
+
+1. 遵循Go编码规范 
+2. 添加单元测试（覆盖率需>85%）  
+3. 更新相关文档 
+
 https://github.com/CodeWizard198/rabbitmq-pool
 
 ---
